@@ -6,16 +6,52 @@ import {
 	Plugin,
 } from "obsidian";
 
-const BLOCK_PREFIX = /- \[.]|-|\*|\+|>|#{1,6}|[0-9]+\./;
-const LINE_START_BLOCK_PREFIX = new RegExp(`^\\s*${BLOCK_PREFIX.source} `);
-// exclude headings and quotes (only bullets, numbers, or checkboxes)
-const OVERRIDABLE_BLOCK_PREFIX = /- \[.]|-|\*|\+|[0-9]+\./;
-const OVERRIDING_BLOCK = /-|\*|\+|[0-9]+\./;
-const LINE_START_OVERRIDABLE_BLOCK = new RegExp(
-	`^(?<whitespace>\\s*)(?<existing>${OVERRIDABLE_BLOCK_PREFIX.source}) `
+// note that when adding multiple of these together, the order sometimes matters.
+// most specific should come before less specific (just CHECKBOX before BULLET)
+const BLOCKS = {
+	CHECKBOX: /- \[.]/,
+	BULLET: /-|\*|\+/,
+	NUMBER: /[0-9]+\./,
+	HEADING: /#{1,6}/,
+	QUOTE: />/,
+} as const;
+
+/**
+ * Matches a block prefix without any leading/trailing spaces.
+ */
+const ANY_BLOCK = new RegExp(
+	`${BLOCKS.CHECKBOX.source}|${BLOCKS.BULLET.source}|${BLOCKS.NUMBER.source}|${BLOCKS.HEADING.source}|${BLOCKS.QUOTE.source}`
 );
+
+/**
+ * Matches a block prefix at the start of a line. Can be indented.
+ *
+ * Includes ending space.
+ */
+const LINE_START_BLOCK = new RegExp(`^\\s*(?:${ANY_BLOCK.source}) `);
+
+/**
+ * Matches block prefixes that can be overridden.
+ */
+const OVERRIDABLE_BLOCK = new RegExp(
+	`${BLOCKS.CHECKBOX.source}|${BLOCKS.BULLET.source}|${BLOCKS.NUMBER.source}`
+);
+/**
+ * Matches block prefixes that can override other blocks.
+ *
+ * Doesn't include checkbox because it already appends onto the bullet.
+ */
+const OVERRIDING_BLOCK = new RegExp(
+	`${BLOCKS.BULLET.source}|${BLOCKS.NUMBER.source}`
+);
+
+/**
+ * Matches whether the line is trying to override <existing> with <new>.
+ *
+ * Does not include ending space.
+ */
 const IS_OVERRIDING = new RegExp(
-	`${LINE_START_OVERRIDABLE_BLOCK.source}(?<new>${OVERRIDING_BLOCK.source})`
+	`^(?<whitespace>\\s*)(?<existing>${OVERRIDABLE_BLOCK.source}) (?<new>${OVERRIDING_BLOCK.source})`
 );
 
 export default class BlockierPlugin extends Plugin {
@@ -38,7 +74,6 @@ export default class BlockierPlugin extends Plugin {
 		this.registerDomEvent(document, "keydown", (ev) => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (view && ev.key === " ") {
-				console.log("pressed space");
 				tryReplace(view.editor);
 			}
 		});
@@ -48,19 +83,19 @@ export default class BlockierPlugin extends Plugin {
 function tryReplace(editor: Editor) {
 	// the line will be in the state it was *before* the last character was added.
 	const lineNum = editor.getCursor().line;
-	const line = editor.getLine(lineNum);
 	const ch = editor.getCursor().ch;
-	const canReplace = OVERRIDABLE_BLOCK_PREFIX.test(line);
-	if (!canReplace) return;
+	const line = editor.getLine(lineNum);
 
+	// see if the line is trying to override the block prefix
 	const match = line.match(IS_OVERRIDING);
-	if (!match) return;
-	const isCausedBySpace = (match[0].length ?? 0) === ch;
-	if (!isCausedBySpace) return;
+	// check that the cursor is right after the override
+	if (match?.[0].length !== ch) return;
 
 	const groups = match.groups!;
+	// don't override if the new prefix is the same as the old
 	if (groups.new === groups.existing) return;
 
+	// create a selection around the <existing> block prefix
 	const leftPos: EditorPosition = {
 		line: lineNum,
 		ch: groups.whitespace.length,
@@ -70,6 +105,7 @@ function tryReplace(editor: Editor) {
 		ch: match[0].length,
 	};
 
+	// replace with new block prefix
 	editor.replaceRange(groups.new, leftPos, rightPos);
 }
 
@@ -112,8 +148,7 @@ function selectLine(
 
 		const lineNum = start.line;
 		const line = editor.getLine(lineNum);
-		const paragraphStart =
-			line.match(LINE_START_BLOCK_PREFIX)?.[0].length ?? 0;
+		const paragraphStart = line.match(LINE_START_BLOCK)?.[0].length ?? 0;
 		return {
 			anchor: {
 				ch: paragraphStart,
