@@ -1,10 +1,4 @@
-import {
-	Editor,
-	EditorPosition,
-	EditorSelection,
-	EditorSelectionOrCaret,
-	Plugin,
-} from "obsidian";
+import { Editor, EditorPosition, EditorSelection, Plugin } from "obsidian";
 
 const LINE_START_REGEX = /^\s*(?:- \[.]|-|\*|\+|>|#{1,6}|[0-9]+\.) /;
 
@@ -12,15 +6,13 @@ export default class BlockierPlugin extends Plugin {
 	async onload() {
 		this.addCommand({
 			id: "select-block",
-			name: "Select Block",
+			name: "Select block",
 			hotkeys: [{ modifiers: ["Meta"], key: "a" }],
 			editorCallback(editor: Editor) {
-				console.log("Running command!!");
 				const selections = editor.listSelections();
-				console.log(selections);
 
-				const newSelections: EditorSelectionOrCaret[] = selections.map(
-					(sel) => selectLine(editor, sel)
+				const newSelections = selections.map((sel) =>
+					selectLine(editor, sel)
 				);
 
 				editor.setSelections(newSelections);
