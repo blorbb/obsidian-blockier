@@ -77,7 +77,7 @@ export default class BlockierPlugin extends Plugin {
 		this.addCommand({
 			id: "select-block",
 			name: "Select block",
-			hotkeys: [{ modifiers: ["Meta"], key: "a" }],
+			hotkeys: [{ modifiers: ["Mod"], key: "a" }],
 			editorCallback: (editor: Editor) => {
 				const selections = editor.listSelections();
 
