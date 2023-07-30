@@ -1,6 +1,22 @@
-import { Editor, EditorPosition, EditorSelection, Plugin } from "obsidian";
+import {
+	Editor,
+	EditorPosition,
+	EditorSelection,
+	MarkdownView,
+	Plugin,
+} from "obsidian";
 
-const LINE_START_REGEX = /^\s*(?:- \[.]|-|\*|\+|>|#{1,6}|[0-9]+\.) /;
+const BLOCK_PREFIX = /- \[.]|-|\*|\+|>|#{1,6}|[0-9]+\./;
+const LINE_START_BLOCK_PREFIX = new RegExp(`^\\s*${BLOCK_PREFIX.source} `);
+// exclude headings and quotes (only bullets, numbers, or checkboxes)
+const OVERRIDABLE_BLOCK_PREFIX = /- \[.]|-|\*|\+|[0-9]+\./;
+const OVERRIDING_BLOCK = /-|\*|\+|[0-9]+\./;
+const LINE_START_OVERRIDABLE_BLOCK = new RegExp(
+	`^(?<whitespace>\\s*)(?<existing>${OVERRIDABLE_BLOCK_PREFIX.source}) `
+);
+const IS_OVERRIDING = new RegExp(
+	`${LINE_START_OVERRIDABLE_BLOCK.source}(?<new>${OVERRIDING_BLOCK.source})`
+);
 
 export default class BlockierPlugin extends Plugin {
 	async onload() {
@@ -18,7 +34,43 @@ export default class BlockierPlugin extends Plugin {
 				editor.setSelections(newSelections);
 			},
 		});
+
+		this.registerDomEvent(document, "keydown", (ev) => {
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (view && ev.key === " ") {
+				console.log("pressed space");
+				tryReplace(view.editor);
+			}
+		});
 	}
+}
+
+function tryReplace(editor: Editor) {
+	// the line will be in the state it was *before* the last character was added.
+	const lineNum = editor.getCursor().line;
+	const line = editor.getLine(lineNum);
+	const ch = editor.getCursor().ch;
+	const canReplace = OVERRIDABLE_BLOCK_PREFIX.test(line);
+	if (!canReplace) return;
+
+	const match = line.match(IS_OVERRIDING);
+	if (!match) return;
+	const isCausedBySpace = (match[0].length ?? 0) === ch;
+	if (!isCausedBySpace) return;
+
+	const groups = match.groups!;
+	if (groups.new === groups.existing) return;
+
+	const leftPos: EditorPosition = {
+		line: lineNum,
+		ch: groups.whitespace.length,
+	};
+	const rightPos: EditorPosition = {
+		line: lineNum,
+		ch: match[0].length,
+	};
+
+	editor.replaceRange(groups.new, leftPos, rightPos);
 }
 
 /**
@@ -60,7 +112,8 @@ function selectLine(
 
 		const lineNum = start.line;
 		const line = editor.getLine(lineNum);
-		const paragraphStart = line.match(LINE_START_REGEX)?.[0].length ?? 0;
+		const paragraphStart =
+			line.match(LINE_START_BLOCK_PREFIX)?.[0].length ?? 0;
 		return {
 			anchor: {
 				ch: paragraphStart,
