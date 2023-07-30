@@ -1,9 +1,12 @@
 import {
+	App,
 	Editor,
 	EditorPosition,
 	EditorSelection,
 	MarkdownView,
 	Plugin,
+	PluginSettingTab,
+	Setting,
 } from "obsidian";
 
 // note that when adding multiple of these together, the order sometimes matters.
@@ -54,17 +57,36 @@ const IS_OVERRIDING = new RegExp(
 	`^(?<whitespace>\\s*)(?<existing>${OVERRIDABLE_BLOCK.source}) (?<new>${OVERRIDING_BLOCK.source})`
 );
 
+interface PluginSettings {
+	replaceBlocks: boolean;
+	selectAllAvoidsPrefixes: boolean;
+}
+
+const DEFAULT_SETTINGS: PluginSettings = {
+	replaceBlocks: true,
+	selectAllAvoidsPrefixes: true,
+};
+
 export default class BlockierPlugin extends Plugin {
+	settings: PluginSettings;
+
 	async onload() {
+		await this.loadSettings();
+		this.addSettingTab(new SettingsTab(this.app, this));
+
 		this.addCommand({
 			id: "select-block",
 			name: "Select block",
 			hotkeys: [{ modifiers: ["Meta"], key: "a" }],
-			editorCallback(editor: Editor) {
+			editorCallback: (editor: Editor) => {
 				const selections = editor.listSelections();
 
 				const newSelections = selections.map((sel) =>
-					selectLine(editor, sel)
+					selectLine(
+						editor,
+						sel,
+						this.settings.selectAllAvoidsPrefixes
+					)
 				);
 
 				editor.setSelections(newSelections);
@@ -73,10 +95,22 @@ export default class BlockierPlugin extends Plugin {
 
 		this.registerDomEvent(document, "keydown", (ev) => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-			if (view && ev.key === " ") {
+			if (this.settings.replaceBlocks && view && ev.key === " ") {
 				tryReplace(view.editor);
 			}
 		});
+	}
+
+	async loadSettings() {
+		this.settings = Object.assign(
+			{},
+			DEFAULT_SETTINGS,
+			await this.loadData()
+		);
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings);
 	}
 }
 
@@ -113,7 +147,7 @@ function tryReplace(editor: Editor) {
  * Modifies a selection to cover the whole line.
  *
  * If the selection is on one line, it will select the whole paragraph,
- * excluding block prefixes. These include:
+ * excluding block prefixes (if `avoidPrefixes` is also `true`). These include:
  * - Unordered lists `-`, `+` and `*`
  * - Numbered lists `1.`, `2.`, ...
  * - Headings `#`, `##`, ...
@@ -122,12 +156,13 @@ function tryReplace(editor: Editor) {
  */
 function selectLine(
 	editor: Editor,
-	selection: EditorSelection
+	selection: EditorSelection,
+	avoidPrefixes: boolean
 ): EditorSelection {
 	// set selection start and end (not anchor and head)
 	const [start, end] = orderPositions(selection.anchor, selection.head);
 
-	if (start.line !== end.line) {
+	if (start.line !== end.line || !avoidPrefixes) {
 		// selection spans multiple lines: select everything in those lines,
 		// including bullets and other stuff that is usually left out.
 
@@ -175,5 +210,48 @@ function orderPositions(
 		return [anchor, head];
 	} else {
 		return [head, anchor];
+	}
+}
+
+class SettingsTab extends PluginSettingTab {
+	plugin: BlockierPlugin;
+
+	constructor(app: App, plugin: BlockierPlugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	display(): void {
+		const { containerEl } = this;
+
+		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName("Replace blocks")
+			.setDesc(
+				"Replaces the block type if you enter the prefix at the start of the paragraph."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.replaceBlocks)
+					.onChange(async (value) => {
+						this.plugin.settings.replaceBlocks = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Only select paragraphs")
+			.setDesc(
+				"Whether the `Select block` command will avoid selecting block prefixes like `- ` and `2. `."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.selectAllAvoidsPrefixes)
+					.onChange(async (value) => {
+						this.plugin.settings.selectAllAvoidsPrefixes = value;
+						await this.plugin.saveSettings();
+					})
+			);
 	}
 }
