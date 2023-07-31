@@ -6,3 +6,14 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+.blockier-checkbox-suggestion.markdown-preview-view {
+	padding: 0;
+	overflow: hidden;
+	padding-right: calc((var(--list-indent) - var(--checkbox-size)) / 2);
+}
+
+.blockier-checkbox-suggestion ul {
+	margin-block: -1.5em;
+	display: block;
+}

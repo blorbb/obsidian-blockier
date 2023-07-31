@@ -8,6 +8,7 @@ import {
 	PluginSettingTab,
 	Setting,
 } from "obsidian";
+import { CheckboxSuggest } from "suggest";
 
 // note that when adding multiple of these together, the order sometimes matters.
 // most specific should come before less specific (just CHECKBOX before BULLET)
@@ -60,15 +61,21 @@ const IS_OVERRIDING = new RegExp(
 interface PluginSettings {
 	replaceBlocks: boolean;
 	selectAllAvoidsPrefixes: boolean;
+	showCheckboxSuggestions: boolean;
+	checkboxVariants: string;
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
 	replaceBlocks: true,
 	selectAllAvoidsPrefixes: true,
+	showCheckboxSuggestions: true,
+	checkboxVariants: ' x><!-/?*nliISpcb"0123456789',
 };
 
 export default class BlockierPlugin extends Plugin {
 	settings: PluginSettings;
+
+	private checkboxSuggestions: CheckboxSuggest;
 
 	async onload() {
 		await this.loadSettings();
@@ -99,6 +106,9 @@ export default class BlockierPlugin extends Plugin {
 				tryReplace(view.editor);
 			}
 		});
+
+		this.checkboxSuggestions = new CheckboxSuggest(this.app, this);
+		this.registerEditorSuggest(this.checkboxSuggestions);
 	}
 
 	async loadSettings() {
@@ -250,6 +260,34 @@ class SettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.selectAllAvoidsPrefixes)
 					.onChange(async (value) => {
 						this.plugin.settings.selectAllAvoidsPrefixes = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Show checkbox suggestions")
+			.setDesc(
+				"Whether to show suggestions of checkbox variants supported by your theme."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showCheckboxSuggestions)
+					.onChange(async (value) => {
+						this.plugin.settings.showCheckboxSuggestions = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Checkbox suggestion variants")
+			.setDesc(
+				"Which checkboxes to be shown in the suggestion. These should be supported by your theme. Each character will be one checkbox. (Defaults are those supported by the AnuPpuccin theme)"
+			)
+			.addText((text) =>
+				text
+					.setValue(this.plugin.settings.checkboxVariants)
+					.onChange(async (value) => {
+						this.plugin.settings.checkboxVariants = value;
 						await this.plugin.saveSettings();
 					})
 			);
