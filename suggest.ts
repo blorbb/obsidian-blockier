@@ -8,6 +8,8 @@ import {
 	MarkdownRenderer,
 } from "obsidian";
 
+const CHECKBOX_REGEX = /^\s*- \[(.?)/;
+
 export class CheckboxSuggest extends EditorSuggest<string> {
 	private app: App;
 	private plugin: BlockierPlugin;
@@ -25,17 +27,16 @@ export class CheckboxSuggest extends EditorSuggest<string> {
 		if (!this.plugin.settings.showCheckboxSuggestions) return null;
 
 		const line = editor.getLine(cursor.line);
-		if (line[cursor.ch - 1] === "[") {
+		const match = line.match(CHECKBOX_REGEX);
+		if (match) {
+			const query = match[1];
 			return {
 				start: cursor,
-				end: cursor,
-				query: "",
-			};
-		} else if (line[cursor.ch - 2] === "[") {
-			return {
-				start: { ...cursor, ch: cursor.ch - 1 },
-				end: cursor,
-				query: line[cursor.ch - 1],
+				end: {
+					...cursor,
+					ch: cursor.ch + query.length,
+				},
+				query,
 			};
 		}
 		return null;
