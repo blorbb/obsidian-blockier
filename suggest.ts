@@ -8,7 +8,7 @@ import {
 	MarkdownRenderer,
 } from "obsidian";
 
-const CHECKBOX_REGEX = /^\s*- \[(.?)/;
+const CHECKBOX_REGEX = /^\s*- \[(.?)$/;
 
 export class CheckboxSuggest extends EditorSuggest<string> {
 	private app: App;
@@ -27,7 +27,7 @@ export class CheckboxSuggest extends EditorSuggest<string> {
 		if (!this.plugin.settings.showCheckboxSuggestions) return null;
 
 		const line = editor.getLine(cursor.line);
-		const match = line.match(CHECKBOX_REGEX);
+		const match = line.slice(0, cursor.ch).match(CHECKBOX_REGEX);
 		if (match) {
 			const query = match[1];
 			return {
