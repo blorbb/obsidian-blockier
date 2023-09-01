@@ -13,18 +13,18 @@ import { CheckboxSuggest } from "suggest";
 // note that when adding multiple of these together, the order sometimes matters.
 // most specific should come before less specific (just CHECKBOX before BULLET)
 const BLOCKS = {
-	CHECKBOX: /- \[.]/,
-	BULLET: /-|\*|\+/,
-	NUMBER: /[0-9]+\./,
-	HEADING: /#{1,6}/,
-	QUOTE: />/,
+	CHECKBOX: /- \[.]/.source,
+	BULLET: /-|\*|\+/.source,
+	NUMBER: /[0-9]+\./.source,
+	HEADING: /#{1,6}/.source,
+	QUOTE: />/.source,
 } as const;
 
 /**
  * Matches a block prefix without any leading/trailing spaces.
  */
 const ANY_BLOCK = new RegExp(
-	`${BLOCKS.CHECKBOX.source}|${BLOCKS.BULLET.source}|${BLOCKS.NUMBER.source}|${BLOCKS.HEADING.source}|${BLOCKS.QUOTE.source}`
+	`${BLOCKS.CHECKBOX}|${BLOCKS.BULLET}|${BLOCKS.NUMBER}|${BLOCKS.HEADING}|${BLOCKS.QUOTE}`
 );
 
 /**
@@ -38,7 +38,7 @@ const LINE_START_BLOCK = new RegExp(`^\\s*(?:${ANY_BLOCK.source}) `);
  * Matches block prefixes that can be overridden.
  */
 const OVERRIDABLE_BLOCK = new RegExp(
-	`${BLOCKS.CHECKBOX.source}|${BLOCKS.BULLET.source}|${BLOCKS.NUMBER.source}`
+	`${BLOCKS.CHECKBOX}|${BLOCKS.BULLET}|${BLOCKS.NUMBER}`
 );
 /**
  * Matches block prefixes that can override other blocks.
@@ -46,7 +46,7 @@ const OVERRIDABLE_BLOCK = new RegExp(
  * Doesn't include checkbox because it already appends onto the bullet.
  */
 const OVERRIDING_BLOCK = new RegExp(
-	`${BLOCKS.BULLET.source}|${BLOCKS.NUMBER.source}`
+	`${BLOCKS.BULLET}|${BLOCKS.NUMBER}`
 );
 
 /**
@@ -124,7 +124,12 @@ export default class BlockierPlugin extends Plugin {
 	}
 }
 
-function tryReplace(editor: Editor) {
+/**
+ * Tries to apply a block type override.
+ * 
+ * Example: Changing a numbered list `1.` to a bullet `-` using `1. - `.
+ */
+function tryReplace(editor: Editor): void {
 	// the line will be in the state it was *before* the last character was added.
 	const lineNum = editor.getCursor().line;
 	const ch = editor.getCursor().ch;
@@ -207,6 +212,9 @@ function selectLine(
 	}
 }
 
+/**
+ * Reorders an anchor and head position to a start and end position.
+ */
 function orderPositions(
 	anchor: EditorPosition,
 	head: EditorPosition
