@@ -18,9 +18,10 @@ export class CheckboxSuggest extends EditorSuggest<string> {
 	private app: App;
 	private plugin: BlockierPlugin;
 
-	constructor(app: App) {
+	constructor(app: App, plugin: BlockierPlugin) {
 		super(app);
 		this.app = app;
+		this.plugin = plugin;
 	}
 
 	onTrigger(

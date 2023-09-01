@@ -28,8 +28,6 @@ const DEFAULT_SETTINGS: PluginSettings = {
 export default class BlockierPlugin extends Plugin {
 	settings: PluginSettings;
 
-	private checkboxSuggestions: CheckboxSuggest;
-
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new SettingsTab(this.app, this));
@@ -53,8 +51,8 @@ export default class BlockierPlugin extends Plugin {
 		// Checking at plugin initialisation instead of every keypress.
 		// Requires reload if this setting is changed.
 		if (this.settings.showCheckboxSuggestions) {
-			this.checkboxSuggestions = new CheckboxSuggest(this.app);
-			this.registerEditorSuggest(this.checkboxSuggestions);
+			const checkboxSuggestions = new CheckboxSuggest(this.app, this);
+			this.registerEditorSuggest(checkboxSuggestions);
 		}
 	}
 
