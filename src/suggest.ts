@@ -18,18 +18,15 @@ export class CheckboxSuggest extends EditorSuggest<string> {
 	private app: App;
 	private plugin: BlockierPlugin;
 
-	constructor(app: App, plugin: BlockierPlugin) {
+	constructor(app: App) {
 		super(app);
 		this.app = app;
-		this.plugin = plugin;
 	}
 
 	onTrigger(
 		cursor: EditorPosition,
 		editor: Editor
 	): EditorSuggestTriggerInfo | null {
-		if (!this.plugin.settings.showCheckboxSuggestions) return null;
-
 		const line = editor.getLine(cursor.line);
 		const match = line.slice(0, cursor.ch).match(EDITING_CHECKBOX);
 		if (match) {

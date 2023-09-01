@@ -2,6 +2,7 @@ import {
 	App,
 	Editor,
 	MarkdownView,
+	Notice,
 	Plugin,
 	PluginSettingTab,
 	Setting,
@@ -20,7 +21,7 @@ interface PluginSettings {
 const DEFAULT_SETTINGS: PluginSettings = {
 	replaceBlocks: true,
 	selectAllAvoidsPrefixes: true,
-	showCheckboxSuggestions: true,
+	showCheckboxSuggestions: false,
 	checkboxVariants: ' x><!-/?*nliISpcb"0123456789',
 };
 
@@ -49,8 +50,12 @@ export default class BlockierPlugin extends Plugin {
 			}
 		});
 
-		this.checkboxSuggestions = new CheckboxSuggest(this.app, this);
-		this.registerEditorSuggest(this.checkboxSuggestions);
+		// Checking at plugin initialisation instead of every keypress.
+		// Requires reload if this setting is changed.
+		if (this.settings.showCheckboxSuggestions) {
+			this.checkboxSuggestions = new CheckboxSuggest(this.app);
+			this.registerEditorSuggest(this.checkboxSuggestions);
+		}
 	}
 
 	async loadSettings() {
@@ -110,7 +115,7 @@ class SettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Show checkbox suggestions")
 			.setDesc(
-				"Whether to show suggestions of checkbox variants supported by your theme."
+				"Whether to show suggestions of checkbox variants supported by your theme. Reload required."
 			)
 			.addToggle((toggle) =>
 				toggle
@@ -118,6 +123,7 @@ class SettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.showCheckboxSuggestions = value;
 						await this.plugin.saveSettings();
+						new Notice("Reload required!");
 					})
 			);
 
