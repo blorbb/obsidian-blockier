@@ -8,7 +8,12 @@ import {
 	MarkdownRenderer,
 } from "obsidian";
 
-const CHECKBOX_REGEX = /^\s*- \[(.?)$/;
+/**
+ * Whether the cursor is currently editing a checkbox.
+ *
+ * Matches a group if there is also an existing token.
+ */
+const EDITING_CHECKBOX = /^\s*- \[(.?)$/;
 
 export class CheckboxSuggest extends EditorSuggest<string> {
 	private app: App;
@@ -27,15 +32,12 @@ export class CheckboxSuggest extends EditorSuggest<string> {
 		if (!this.plugin.settings.showCheckboxSuggestions) return null;
 
 		const line = editor.getLine(cursor.line);
-		const match = line.slice(0, cursor.ch).match(CHECKBOX_REGEX);
+		const match = line.slice(0, cursor.ch).match(EDITING_CHECKBOX);
 		if (match) {
 			const query = match[1];
 			return {
-				start: cursor,
-				end: {
-					...cursor,
-					ch: cursor.ch + query.length,
-				},
+				start: offsetCh(cursor, -query.length),
+				end: cursor,
 				query,
 			};
 		}
@@ -92,23 +94,30 @@ export class CheckboxSuggest extends EditorSuggest<string> {
 
 		// if there was a query, cursor is at `- [x|] `
 		// otherwise its at `- [|x] `
-		const newCursor = {
-			line: cursor.line,
-			ch: cursor.ch + (this.context.query ? 2 : 3), // move to `- [x] |`
-		};
+		// move to `- [x] |`
+		const newCursor = offsetCh(cursor, this.context.query ? 2 : 3);
 
 		this.context.editor.setCursor(newCursor);
 
-		// remove extra `]` or ` ` to the right if there is any.
-		const next2CharCursor = { ...newCursor, ch: newCursor.ch + 2 };
-		const nextCharCursor = { ...newCursor, ch: newCursor.ch + 1 };
-
-		if (this.context.editor.getRange(newCursor, next2CharCursor) === "] ") {
-			this.context.editor.replaceRange("", newCursor, next2CharCursor);
-		} else if (
-			this.context.editor.getRange(newCursor, nextCharCursor) === " "
-		) {
-			this.context.editor.replaceRange("", newCursor, nextCharCursor);
+		// remove extra `]` to the right if there is any.
+		// if selected an option while cursor is in `- [|]`: there is an extra ].
+		const nextChar = this.context.editor.getRange(
+			newCursor,
+			offsetCh(newCursor, 1)
+		);
+		if (nextChar === "]") {
+			this.context.editor.replaceRange(
+				"",
+				newCursor,
+				offsetCh(newCursor, 1)
+			);
 		}
 	}
+}
+
+function offsetCh(position: EditorPosition, chs: number): EditorPosition {
+	return {
+		...position,
+		ch: position.ch + chs,
+	};
 }
