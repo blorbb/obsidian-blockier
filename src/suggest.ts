@@ -1,3 +1,7 @@
+/**
+ * Adds checkbox variant suggestions.
+ */
+
 import BlockierPlugin from "main";
 import {
 	App,
@@ -7,13 +11,8 @@ import {
 	EditorSuggestTriggerInfo,
 	MarkdownRenderer,
 } from "obsidian";
+import { EDITING_CHECKBOX } from "regex";
 
-/**
- * Whether the cursor is currently editing a checkbox.
- *
- * Matches a group if there is also an existing token.
- */
-const EDITING_CHECKBOX = /^\s*- \[(.?)$/;
 
 export class CheckboxSuggest extends EditorSuggest<string> {
 	private app: App;
@@ -115,6 +114,9 @@ export class CheckboxSuggest extends EditorSuggest<string> {
 	}
 }
 
+/**
+ * Offsets an `EditorPosition` by `chs` number of characters.
+ */
 function offsetCh(position: EditorPosition, chs: number): EditorPosition {
 	return {
 		...position,
