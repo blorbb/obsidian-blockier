@@ -178,7 +178,7 @@ class SettingsTab extends PluginSettingTab {
 			.setDesc(
 				"Which callouts to be shown in the suggestion. These should be supported by your theme. Separate by commas."
 			)
-			.addText((text) =>
+			.addTextArea((text) =>
 				text
 					.setValue(this.plugin.settings.calloutSuggestions)
 					.onChange(async (value) => {
