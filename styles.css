@@ -1,12 +1,4 @@
-/*
-
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
-
-If your plugin does not need CSS, delete this file.
-
-*/
-
+/* Checkbox suggestions */
 .blockier-checkbox-suggestion.markdown-preview-view {
 	padding: 0;
 	overflow: hidden;
@@ -15,5 +7,18 @@ If your plugin does not need CSS, delete this file.
 
 .blockier-checkbox-suggestion ul {
 	margin-block: -1.5em;
+	display: block;
+}
+
+/* Callout suggestions */
+
+.blockier-callout-suggestion.markdown-preview-view {
+	padding: 0;
+	overflow: hidden;
+	width: 300px;
+}
+
+.blockier-callout-suggestion .callout {
+	margin: 0;
 	display: block;
 }

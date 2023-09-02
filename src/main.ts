@@ -9,13 +9,15 @@ import {
 } from "obsidian";
 import { tryReplace as tryReplaceBlock } from "replace";
 import { runSelectBlock } from "select";
-import { CheckboxSuggest } from "suggest";
+import { CalloutSuggest, CheckboxSuggest } from "suggest";
 
 interface PluginSettings {
 	replaceBlocks: boolean;
 	selectAllAvoidsPrefixes: boolean;
 	showCheckboxSuggestions: boolean;
 	checkboxVariants: string;
+	showCalloutSuggestions: boolean;
+	calloutSuggestions: string;
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
@@ -23,6 +25,9 @@ const DEFAULT_SETTINGS: PluginSettings = {
 	selectAllAvoidsPrefixes: true,
 	showCheckboxSuggestions: false,
 	checkboxVariants: ' x><!-/?*nliISpcb"0123456789',
+	showCalloutSuggestions: true,
+	calloutSuggestions:
+		"note, summary, info, todo, tip, check, help, warning, fail, error, bug, example, quote",
 };
 
 export default class BlockierPlugin extends Plugin {
@@ -51,8 +56,22 @@ export default class BlockierPlugin extends Plugin {
 		// Checking at plugin initialisation instead of every keypress.
 		// Requires reload if this setting is changed.
 		if (this.settings.showCheckboxSuggestions) {
-			const checkboxSuggestions = new CheckboxSuggest(this.app, this);
+			const checkboxSuggestions = new CheckboxSuggest(
+				this.app,
+				this,
+				this.settings.checkboxVariants
+			);
 			this.registerEditorSuggest(checkboxSuggestions);
+		}
+
+		if (this.settings.showCalloutSuggestions) {
+			this.registerEditorSuggest(
+				new CalloutSuggest(
+					this.app,
+					this,
+					this.settings.calloutSuggestions
+				)
+			);
 		}
 	}
 
@@ -135,6 +154,35 @@ class SettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.checkboxVariants)
 					.onChange(async (value) => {
 						this.plugin.settings.checkboxVariants = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Show callout suggestions")
+			.setDesc(
+				"Whether to show suggestions of callout variants supported by your theme. Reload required."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showCalloutSuggestions)
+					.onChange(async (value) => {
+						this.plugin.settings.showCalloutSuggestions = value;
+						await this.plugin.saveSettings();
+						new Notice("Reload required!");
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Callout suggestion variants")
+			.setDesc(
+				"Which callouts to be shown in the suggestion. These should be supported by your theme. Separate by commas."
+			)
+			.addText((text) =>
+				text
+					.setValue(this.plugin.settings.calloutSuggestions)
+					.onChange(async (value) => {
+						this.plugin.settings.calloutSuggestions = value;
 						await this.plugin.saveSettings();
 					})
 			);
