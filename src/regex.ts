@@ -7,7 +7,7 @@
 export const BLOCKS = {
 	CHECKBOX: /- \[.]/.source,
 	BULLET: /-|\*|\+/.source,
-	NUMBER: /[0-9]+\./.source,
+	NUMBER: /[0-9]+[.)]/.source,
 	HEADING: /#{1,6}/.source,
 	QUOTE: />/.source,
 } as const;
