@@ -18,6 +18,10 @@
 	width: 300px;
 }
 
+.is-mobile .blockier-callout-suggestion.markdown-preview-view {
+	width: 100%;
+}
+
 .blockier-callout-suggestion .callout {
 	margin: 0;
 	display: block;
