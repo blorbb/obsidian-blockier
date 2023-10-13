@@ -56,12 +56,13 @@ export default class BlockierPlugin extends Plugin {
 		// Checking at plugin initialisation instead of every keypress.
 		// Requires reload if this setting is changed.
 		if (this.settings.showCheckboxSuggestions) {
-			const checkboxSuggestions = new CheckboxSuggest(
-				this.app,
-				this,
-				this.settings.checkboxVariants
+			this.registerEditorSuggest(
+				new CheckboxSuggest(
+					this.app,
+					this,
+					this.settings.checkboxVariants
+				)
 			);
-			this.registerEditorSuggest(checkboxSuggestions);
 		}
 
 		if (this.settings.showCalloutSuggestions) {
