@@ -14,7 +14,7 @@ This plugin mostly fills feature gaps that I did not find in other plugins. I hi
 
 The Select block command (overrides <kbd>ctrl</kbd>/<kbd>cmd</kbd> <kbd>A</kbd> by default) selects the block your cursor is currently in, excluding block prefixes like bullets `-`, numbers `1.`, headings `##`, quotes `>`, and checkboxes `- [ ]`.
 
-https://github.com/blorbb/obsidian-blockier/assets/88137137/2907194b-bc3a-4130-b65f-350d32691410
+![select](https://github.com/blorbb/obsidian-blockier/assets/88137137/b9d3e3a0-7d76-4f78-92d8-6ae8e204daf1)
 
 This supports multiple cursors too. If the cursor selection spans multiple lines, block prefixes will be included.
 
@@ -22,7 +22,7 @@ This supports multiple cursors too. If the cursor selection spans multiple lines
 
 Entering one of the block prefixes at the start of a block (but after an existing block prefix) will override it.
 
-https://github.com/blorbb/obsidian-blockier/assets/88137137/acee5434-4339-4f2e-ab93-dd35c56b5e3e
+![block-edit](https://github.com/blorbb/obsidian-blockier/assets/88137137/8565b815-08d6-468c-86eb-717b7f78d92c)
 
 This only applies to bullets, numbered lists and checkboxes.
 
