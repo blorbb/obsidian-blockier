@@ -52,8 +52,6 @@ function selectLine(
 		};
 	} else {
 		// selection spans one line: don't select parts at the start (if one exists)
-		// TODO: detect if the selection is currently in a
-		// code block. If so, just select the whole line
 
 		const lineNum = start.line;
 		const line = editor.getLine(lineNum);
