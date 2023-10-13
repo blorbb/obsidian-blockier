@@ -118,7 +118,7 @@ class SettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Only select paragraphs")
 			.setDesc(
-				"Whether the `Select block` command will avoid selecting block prefixes like `- ` and `2. `."
+				"Whether the Select block command will avoid selecting block prefixes."
 			)
 			.addToggle((toggle) =>
 				toggle
@@ -147,7 +147,7 @@ class SettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Checkbox suggestion variants")
 			.setDesc(
-				"Which checkboxes to be shown in the suggestion. These should be supported by your theme. Each character will be one checkbox. (Defaults are those supported by the AnuPpuccin theme)"
+				"Which checkboxes to be shown in the suggestion. These should be supported by your theme. Each character will be one suggestion."
 			)
 			.addText((text) =>
 				text
@@ -176,7 +176,7 @@ class SettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Callout suggestion variants")
 			.setDesc(
-				"Which callouts to be shown in the suggestion. These should be supported by your theme. Separate by commas."
+				"Which callouts to be shown in the suggestion. Separate by commas."
 			)
 			.addTextArea((text) =>
 				text
