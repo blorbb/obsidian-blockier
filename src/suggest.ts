@@ -39,7 +39,10 @@ interface BracketSuggestOptions {
 	renderMarkdown(suggestion: string): string;
 }
 
-class BracketSuggest extends EditorSuggest<string> {
+/**
+ * Generic suggestion class for checkbox and callout suggestions.
+ */
+abstract class BracketSuggest extends EditorSuggest<string> {
 	constructor(
 		protected readonly app: App,
 		protected readonly plugin: Plugin,
@@ -107,24 +110,24 @@ class BracketSuggest extends EditorSuggest<string> {
 	selectSuggestion(value: string): void {
 		if (!this.context) return;
 
-		// cursor is at `- [|] `
+		// cursor is at `[|] `
 		const context = this.context;
 		const cursor = context.editor.getCursor();
 
 		// insert `suggestion] ` and remove query if there is one.
 		context.editor.replaceRange(value + "] ", context.start, context.end);
 
-		// if there was a query, cursor is at `- [sug|] `
-		// otherwise its at `- [|sug] `
-		// move to `- [sug] |`
+		// if there was a query, cursor is at `[sug|] `
+		// otherwise its at `[|sug] `
+		// move to `[sug] |`
 		const offsetAmount =
-			getLine(context, cursor).indexOf("]") + 2 - cursor.ch;
+			context.editor.getLine(cursor.line).indexOf("]") + 2 - cursor.ch;
 		const newCursor = offsetCh(cursor, offsetAmount);
 
 		context.editor.setCursor(newCursor);
 
 		// remove extra `]` and ` ` to the right if there is any.
-		// if selected an option while cursor is in `- [|]`: there is an extra ].
+		// if selected an option while cursor is in `[|]`: there is an extra ].
 		const next2Char = context.editor.getRange(
 			newCursor,
 			offsetCh(newCursor, 2)
@@ -168,14 +171,4 @@ function offsetCh(position: EditorPosition, chs: number): EditorPosition {
 		...position,
 		ch: position.ch + chs,
 	};
-}
-
-/**
- * Gets the current line.
- */
-function getLine(
-	context: EditorSuggestContext,
-	cursor: EditorPosition
-): string {
-	return context.editor.getLine(cursor.line);
 }
