@@ -1,12 +1,12 @@
 import {
 	App,
-	Editor,
 	MarkdownView,
 	Notice,
 	Plugin,
 	PluginSettingTab,
 	Setting,
 } from "obsidian";
+import { keymap } from "@codemirror/view";
 import { tryReplace as tryReplaceBlock } from "replace";
 import { runSelectBlock } from "select";
 import { CalloutSuggest, CheckboxSuggest } from "suggest";
@@ -37,21 +37,45 @@ export default class BlockierPlugin extends Plugin {
 		await this.loadSettings();
 		this.addSettingTab(new SettingsTab(this.app, this));
 
-		this.addCommand({
-			id: "select-block",
-			name: "Select block",
-			hotkeys: [{ modifiers: ["Mod"], key: "a" }],
-			editorCallback: (editor: Editor) => {
-				runSelectBlock(editor, this.settings.selectAllAvoidsPrefixes);
-			},
-		});
+		this.registerEditorExtension(
+			keymap.of([
+				{
+					key: "Space",
+					run: () => {
+						const view =
+							this.app.workspace.getActiveViewOfType(
+								MarkdownView
+							);
+						if (this.settings.replaceBlocks && view) {
+							tryReplaceBlock(view.editor);
+						}
+						return false;
+					},
+				},
+			])
+		);
 
-		this.registerDomEvent(document, "keydown", (ev) => {
-			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-			if (this.settings.replaceBlocks && view && ev.key === " ") {
-				tryReplaceBlock(view.editor);
-			}
-		});
+		// can't use command hotkeys as it prevents selection in other contexts
+		this.registerEditorExtension(
+			keymap.of([
+				{
+					key: "c-a", // ctrl a
+					mac: "m-a", // cmd a
+					run: () => {
+						const editor = this.app.workspace.activeEditor?.editor;
+						if (editor) {
+							runSelectBlock(
+								editor,
+								this.settings.selectAllAvoidsPrefixes
+							);
+						}
+						// stop other bindings
+						// doesn't work if this returns false.
+						return true;
+					},
+				},
+			])
+		);
 
 		// Checking at plugin initialisation instead of every keypress.
 		// Requires reload if this setting is changed.
