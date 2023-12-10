@@ -240,18 +240,53 @@ class SettingsTab extends PluginSettingTab {
 			desc.createEl("br");
 			desc.createEl("span", {text: "Requires reload."});
 			desc.createEl("br");
-			desc.createEl("span", {text: "Use Mod for CTRL if you use Mac/Apple ecosystem and Windows together."});
 			new Setting(containerEl)
-				.setName("Block hotkey - Windows")
+				.setName("Block hotkey")
 				.setDesc(desc)
+				.addButton((button) =>
+					button
+						.setButtonText("Change keybinding")
+						.onClick(async () => {
+							let keyPress:string[] = []
+							button.setButtonText("Waiting for keypress...");
+							button.buttonEl.addEventListener("keydown", (e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								let key = e.key;
+								if (key === "Control") {
+									key = "Mod"
+								}
+								if(!keyPress.includes(key)){
+									keyPress.push(key);
+								}
+								button.buttonEl.focus();
+							});
+							//save on keyUp
+							button.buttonEl.addEventListener("keyup", (e) => {
+								e.preventDefault();
+								e.stopPropagation();
+								//remove duplicates
+								keyPress=keyPress.filter((item, index) => keyPress.indexOf(item) === index);
+								this.plugin.settings.selectBlockHotkey = keyPress.join("-").toLowerCase();
+								this.plugin.saveSettings();
+								new Notice("Keybinding saved!");
+								this.display();
+							});
+						})
+				)
+				//display a false input to show the keybinding
 				.addText((text) =>
 					text
-						.setPlaceholder("Mod-Shift-A")
 						.setValue(this.plugin.settings.selectBlockHotkey)
-						.onChange(async (value) => {
-							this.plugin.settings.selectBlockHotkey = value;
-							await this.plugin.saveSettings();
-							new Notice("Reload required!");
+						.setDisabled(true)
+				)
+				.addButton((button) =>
+					button
+						.setIcon("cross")
+						.setTooltip("Reset to default")
+						.onClick(async () => {
+							this.plugin.settings.selectBlockHotkey = DEFAULT_SETTINGS.selectBlockHotkey.toLowerCase();
+							this.display();
 						})
 				);
 
