@@ -18,6 +18,9 @@ interface PluginSettings {
 	checkboxVariants: string;
 	showCalloutSuggestions: boolean;
 	calloutSuggestions: string;
+	enableBlockHotkey: boolean;
+	selectBlockHotkey: string;
+
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
@@ -28,6 +31,8 @@ const DEFAULT_SETTINGS: PluginSettings = {
 	showCalloutSuggestions: true,
 	calloutSuggestions:
 		"note, summary, info, todo, tip, check, help, warning, fail, error, bug, example, quote",
+	enableBlockHotkey: true,
+	selectBlockHotkey: "Mod-Shift-a"
 };
 
 export default class BlockierPlugin extends Plugin {
@@ -56,26 +61,27 @@ export default class BlockierPlugin extends Plugin {
 		);
 
 		// can't use command hotkeys as it prevents selection in other contexts
-		this.registerEditorExtension(
-			keymap.of([
-				{
-					key: "c-a", // ctrl a
-					mac: "m-a", // cmd a
-					run: () => {
-						const editor = this.app.workspace.activeEditor?.editor;
-						if (editor) {
-							runSelectBlock(
-								editor,
-								this.settings.selectAllAvoidsPrefixes
-							);
-						}
-						// stop other bindings
-						// doesn't work if this returns false.
-						return true;
+		if (this.settings.enableBlockHotkey) {
+			this.registerEditorExtension(
+				keymap.of([
+					{
+						key: (this.settings.selectBlockHotkey).toLowerCase(),
+						run: () => {
+							const editor = this.app.workspace.activeEditor?.editor;
+							if (editor) {
+								runSelectBlock(
+									editor,
+									this.settings.selectAllAvoidsPrefixes
+								);
+							}
+							// stop other bindings
+							// doesn't work if this returns false.
+							return true;
+						},
 					},
-				},
-			])
-		);
+				])
+			);
+		}
 
 		// Checking at plugin initialisation instead of every keypress.
 		// Requires reload if this setting is changed.
@@ -154,6 +160,8 @@ class SettingsTab extends PluginSettingTab {
 					})
 			);
 
+
+
 		new Setting(containerEl)
 			.setName("Show checkbox suggestions")
 			.setDesc(
@@ -211,5 +219,42 @@ class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		new Setting(containerEl)
+			.setName("Enable block hotkey")
+			.setDesc(
+				"Whether to enable the block hotkey. Disable if it conflicts with another plugin."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.enableBlockHotkey)
+					.onChange(async (value) => {
+						this.plugin.settings.enableBlockHotkey = value;
+						await this.plugin.saveSettings();
+						this.display();
+					})
+			);
+		if (this.plugin.settings.enableBlockHotkey) {
+			const desc = document.createDocumentFragment();
+			desc.createEl("span", { text: "Hotkey to select the current block." })
+			desc.createEl("br");
+			desc.createEl("span", {text: "Requires reload."});
+			desc.createEl("br");
+			desc.createEl("span", {text: "Use Mod for CTRL if you use Mac/Apple ecosystem and Windows together."});
+			new Setting(containerEl)
+				.setName("Block hotkey - Windows")
+				.setDesc(desc)
+				.addText((text) =>
+					text
+						.setPlaceholder("Mod-Shift-A")
+						.setValue(this.plugin.settings.selectBlockHotkey)
+						.onChange(async (value) => {
+							this.plugin.settings.selectBlockHotkey = value;
+							await this.plugin.saveSettings();
+							new Notice("Reload required!");
+						})
+				);
+
+		}
 	}
 }
