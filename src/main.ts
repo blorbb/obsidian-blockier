@@ -1,5 +1,6 @@
 import {
 	App,
+	Editor,
 	MarkdownView,
 	Notice,
 	Plugin,
@@ -18,6 +19,7 @@ interface PluginSettings {
 	checkboxVariants: string;
 	showCalloutSuggestions: boolean;
 	calloutSuggestions: string;
+	enableSelectBlockEE: boolean;
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
@@ -28,6 +30,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
 	showCalloutSuggestions: true,
 	calloutSuggestions:
 		"note, summary, info, todo, tip, check, help, warning, fail, error, bug, example, quote",
+	enableSelectBlockEE: true,
 };
 
 export default class BlockierPlugin extends Plugin {
@@ -36,6 +39,14 @@ export default class BlockierPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new SettingsTab(this.app, this));
+
+		this.addCommand({
+			id: "select-block",
+			name: "Select block",
+			editorCallback: (editor: Editor) => {
+				runSelectBlock(editor, this.settings.selectAllAvoidsPrefixes);
+			},
+		});
 
 		this.registerEditorExtension(
 			keymap.of([
@@ -55,27 +66,29 @@ export default class BlockierPlugin extends Plugin {
 			])
 		);
 
-		// can't use command hotkeys as it prevents selection in other contexts
-		this.registerEditorExtension(
-			keymap.of([
-				{
-					key: "c-a", // ctrl a
-					mac: "m-a", // cmd a
-					run: () => {
-						const editor = this.app.workspace.activeEditor?.editor;
-						if (editor) {
-							runSelectBlock(
-								editor,
-								this.settings.selectAllAvoidsPrefixes
-							);
-						}
-						// stop other bindings
-						// doesn't work if this returns false.
-						return true;
+		if (this.settings.enableSelectBlockEE) {
+			this.registerEditorExtension(
+				keymap.of([
+					{
+						key: "c-a", // ctrl a
+						mac: "m-a", // cmd a
+						run: () => {
+							const editor =
+								this.app.workspace.activeEditor?.editor;
+							if (editor) {
+								runSelectBlock(
+									editor,
+									this.settings.selectAllAvoidsPrefixes
+								);
+							}
+							// stop other bindings
+							// doesn't work if this returns false.
+							return true;
+						},
 					},
-				},
-			])
-		);
+				])
+			);
+		}
 
 		// Checking at plugin initialisation instead of every keypress.
 		// Requires reload if this setting is changed.
@@ -137,6 +150,23 @@ class SettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.replaceBlocks = value;
 						await this.plugin.saveSettings();
+					})
+			);
+
+		// need to use an editor extension so that ctrl-a works in other contexts
+		// (e.g. select all in settings / properties)
+		new Setting(containerEl)
+			.setName("Use ctrl/cmd-A for select block")
+			.setDesc(
+				"Whether to override ctrl/cmd-A for the select block command. Disable this and set a hotkey in hotkey settings if you prefer a different hotkey."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.enableSelectBlockEE)
+					.onChange(async (value) => {
+						this.plugin.settings.enableSelectBlockEE = value;
+						await this.plugin.saveSettings();
+						new Notice("Reload required!");
 					})
 			);
 
