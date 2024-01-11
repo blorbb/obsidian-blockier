@@ -51,10 +51,7 @@ abstract class BracketSuggest extends EditorSuggest<string> {
 		super(app);
 	}
 
-	onTrigger(
-		cursor: EditorPosition,
-		editor: Editor
-	): EditorSuggestTriggerInfo | null {
+	onTrigger(cursor: EditorPosition, editor: Editor): EditorSuggestTriggerInfo | null {
 		const line = editor.getLine(cursor.line);
 		const match = line.slice(0, cursor.ch).match(this.opts.triggerRegex);
 		if (match) {
@@ -68,9 +65,7 @@ abstract class BracketSuggest extends EditorSuggest<string> {
 		return null;
 	}
 
-	getSuggestions(
-		context: EditorSuggestContext
-	): string[] | Promise<string[]> {
+	getSuggestions(context: EditorSuggestContext): string[] | Promise<string[]> {
 		const suggestions = this.opts.suggestions;
 		// no or invalid query: return symbol list
 		if (context.query === "") return suggestions;
@@ -92,19 +87,9 @@ abstract class BracketSuggest extends EditorSuggest<string> {
 
 	renderSuggestion(value: string, el: HTMLElement): void {
 		const div = el.createDiv();
-		div.classList.add(
-			"markdown-rendered",
-			"markdown-preview-view",
-			this.opts.suggestionClass
-		);
+		div.classList.add("markdown-rendered", "markdown-preview-view", this.opts.suggestionClass);
 
-		MarkdownRenderer.render(
-			this.app,
-			this.opts.renderMarkdown(value),
-			div,
-			"",
-			this.plugin
-		);
+		MarkdownRenderer.render(this.app, this.opts.renderMarkdown(value), div, "", this.plugin);
 	}
 
 	selectSuggestion(value: string): void {
@@ -120,18 +105,14 @@ abstract class BracketSuggest extends EditorSuggest<string> {
 		// if there was a query, cursor is at `[sug|] `
 		// otherwise its at `[|sug] `
 		// move to `[sug] |`
-		const offsetAmount =
-			context.editor.getLine(cursor.line).indexOf("]") + 2 - cursor.ch;
+		const offsetAmount = context.editor.getLine(cursor.line).indexOf("]") + 2 - cursor.ch;
 		const newCursor = offsetCh(cursor, offsetAmount);
 
 		context.editor.setCursor(newCursor);
 
 		// remove extra `]` and ` ` to the right if there is any.
 		// if selected an option while cursor is in `[|]`: there is an extra ].
-		const next2Char = context.editor.getRange(
-			newCursor,
-			offsetCh(newCursor, 2)
-		);
+		const next2Char = context.editor.getRange(newCursor, offsetCh(newCursor, 2));
 		if (next2Char === "] ") {
 			context.editor.replaceRange("", newCursor, offsetCh(newCursor, 2));
 		} else if (next2Char[0] === "]") {
@@ -146,8 +127,7 @@ export class CheckboxSuggest extends BracketSuggest {
 			suggestions: characters.split(""),
 			triggerRegex: /^\s*- \[(.?)$/,
 			suggestionClass: "blockier-checkbox-suggestion",
-			renderMarkdown: (suggestion) =>
-				`- [${suggestion}] \`${suggestion}\``,
+			renderMarkdown: (suggestion) => `- [${suggestion}] \`${suggestion}\``,
 		});
 	}
 }
