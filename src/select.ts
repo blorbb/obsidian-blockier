@@ -1,6 +1,6 @@
 /**
  * Sets the cursor selection to cover the whole block.
- * 
+ *
  * See documentation on `selectLine` for details.
  */
 
@@ -10,9 +10,7 @@ import { LINE_START_BLOCK } from "regex";
 export function runSelectBlock(editor: Editor, avoidPrefixes: boolean): void {
 	const selections = editor.listSelections();
 
-	const newSelections = selections.map((sel) =>
-		selectLine(editor, sel, avoidPrefixes)
-	);
+	const newSelections = selections.map((sel) => selectLine(editor, sel, avoidPrefixes));
 
 	editor.setSelections(newSelections);
 }

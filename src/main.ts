@@ -1,12 +1,4 @@
-import {
-	App,
-	Editor,
-	MarkdownView,
-	Notice,
-	Plugin,
-	PluginSettingTab,
-	Setting,
-} from "obsidian";
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 import { keymap } from "@codemirror/view";
 import { tryReplace as tryReplaceBlock } from "replace";
 import { runSelectBlock } from "select";
@@ -53,10 +45,7 @@ export default class BlockierPlugin extends Plugin {
 				{
 					key: "Space",
 					run: () => {
-						const view =
-							this.app.workspace.getActiveViewOfType(
-								MarkdownView
-							);
+						const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 						if (this.settings.replaceBlocks && view) {
 							tryReplaceBlock(view.editor);
 						}
@@ -73,13 +62,9 @@ export default class BlockierPlugin extends Plugin {
 						key: "c-a", // ctrl a
 						mac: "m-a", // cmd a
 						run: () => {
-							const editor =
-								this.app.workspace.activeEditor?.editor;
+							const editor = this.app.workspace.activeEditor?.editor;
 							if (editor) {
-								runSelectBlock(
-									editor,
-									this.settings.selectAllAvoidsPrefixes
-								);
+								runSelectBlock(editor, this.settings.selectAllAvoidsPrefixes);
 							}
 							// stop other bindings
 							// doesn't work if this returns false.
@@ -94,31 +79,19 @@ export default class BlockierPlugin extends Plugin {
 		// Requires reload if this setting is changed.
 		if (this.settings.showCheckboxSuggestions) {
 			this.registerEditorSuggest(
-				new CheckboxSuggest(
-					this.app,
-					this,
-					this.settings.checkboxVariants
-				)
+				new CheckboxSuggest(this.app, this, this.settings.checkboxVariants)
 			);
 		}
 
 		if (this.settings.showCalloutSuggestions) {
 			this.registerEditorSuggest(
-				new CalloutSuggest(
-					this.app,
-					this,
-					this.settings.calloutSuggestions
-				)
+				new CalloutSuggest(this.app, this, this.settings.calloutSuggestions)
 			);
 		}
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			await this.loadData()
-		);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
 	async saveSettings() {
@@ -145,12 +118,10 @@ class SettingsTab extends PluginSettingTab {
 				"Replaces the block type if you enter the prefix at the start of the paragraph."
 			)
 			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.replaceBlocks)
-					.onChange(async (value) => {
-						this.plugin.settings.replaceBlocks = value;
-						await this.plugin.saveSettings();
-					})
+				toggle.setValue(this.plugin.settings.replaceBlocks).onChange(async (value) => {
+					this.plugin.settings.replaceBlocks = value;
+					await this.plugin.saveSettings();
+				})
 			);
 
 		// need to use an editor extension so that ctrl-a works in other contexts
@@ -172,9 +143,7 @@ class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Only select paragraphs")
-			.setDesc(
-				"Whether the Select block command will avoid selecting block prefixes."
-			)
+			.setDesc("Whether the Select block command will avoid selecting block prefixes.")
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.selectAllAvoidsPrefixes)
@@ -205,12 +174,10 @@ class SettingsTab extends PluginSettingTab {
 				"Which checkboxes to be shown in the suggestion. These should be supported by your theme. Each character will be one suggestion."
 			)
 			.addText((text) =>
-				text
-					.setValue(this.plugin.settings.checkboxVariants)
-					.onChange(async (value) => {
-						this.plugin.settings.checkboxVariants = value;
-						await this.plugin.saveSettings();
-					})
+				text.setValue(this.plugin.settings.checkboxVariants).onChange(async (value) => {
+					this.plugin.settings.checkboxVariants = value;
+					await this.plugin.saveSettings();
+				})
 			);
 
 		new Setting(containerEl)
@@ -230,16 +197,12 @@ class SettingsTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Callout suggestion variants")
-			.setDesc(
-				"Which callouts to be shown in the suggestion. Separate by commas."
-			)
+			.setDesc("Which callouts to be shown in the suggestion. Separate by commas.")
 			.addTextArea((text) =>
-				text
-					.setValue(this.plugin.settings.calloutSuggestions)
-					.onChange(async (value) => {
-						this.plugin.settings.calloutSuggestions = value;
-						await this.plugin.saveSettings();
-					})
+				text.setValue(this.plugin.settings.calloutSuggestions).onChange(async (value) => {
+					this.plugin.settings.calloutSuggestions = value;
+					await this.plugin.saveSettings();
+				})
 			);
 	}
 }

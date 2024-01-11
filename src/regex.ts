@@ -29,9 +29,7 @@ export const LINE_START_BLOCK = new RegExp(`^\\s*(?:${ANY_BLOCK.source}) `);
 /**
  * Matches block prefixes that can be overridden.
  */
-export const OVERRIDABLE_BLOCK = new RegExp(
-	`${BLOCKS.CHECKBOX}|${BLOCKS.BULLET}|${BLOCKS.NUMBER}`
-);
+export const OVERRIDABLE_BLOCK = new RegExp(`${BLOCKS.CHECKBOX}|${BLOCKS.BULLET}|${BLOCKS.NUMBER}`);
 /**
  * Matches block prefixes that can override other blocks.
  *
