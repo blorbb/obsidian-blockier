@@ -136,7 +136,8 @@ export class CalloutSuggest extends BracketSuggest {
 	constructor(app: App, plugin: Plugin, csv: string) {
 		super(app, plugin, {
 			suggestions: csv.split(",").map((str) => str.trim()),
-			triggerRegex: /^\s*> \[!(\w*)$/,
+			// allow 0/1 space before the `[!` - https://github.com/blorbb/obsidian-blockier/issues/5
+			triggerRegex: /^\s*> ?\[!(\w*)$/,
 			suggestionClass: "blockier-callout-suggestion",
 			renderMarkdown: (suggestion) => `> [!${suggestion}]`,
 		});
