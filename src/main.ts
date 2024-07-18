@@ -1,4 +1,5 @@
 import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+// @ts-expect-error
 import { keymap } from "@codemirror/view";
 import { tryReplace as tryReplaceBlock } from "replace";
 import { runSelectBlock } from "select";
@@ -63,9 +64,7 @@ export default class BlockierPlugin extends Plugin {
 						mac: "m-a", // cmd a
 						run: () => {
 							const editor = this.app.workspace.activeEditor?.editor;
-							if (editor) {
-								runSelectBlock(editor, this.settings.selectAllAvoidsPrefixes);
-							}
+							runSelectBlock(editor, this.settings.selectAllAvoidsPrefixes);
 							// stop other bindings
 							// doesn't work if this returns false.
 							return true;

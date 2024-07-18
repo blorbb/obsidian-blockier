@@ -7,12 +7,40 @@
 import { Editor, EditorPosition, EditorSelection } from "obsidian";
 import { LINE_START_BLOCK } from "regex";
 
-export function runSelectBlock(editor: Editor, avoidPrefixes: boolean): void {
+export function runSelectBlock(editor: Editor | undefined, avoidPrefixes: boolean) {
+	// if the cursor is in a table, it doesn't select the table contents properly
+	// because it tries to select the entire row.
+	// fall back to just selecting the entire table cell
+	const selection = document.getSelection();
+	const closestTable = selection?.anchorNode?.parentElement?.closest("table");
+	if (closestTable || !editor) {
+		console.log("blockier: falling back to selecting closest live preview element");
+		selectClosestCmContent();
+		return;
+	}
+
 	const selections = editor.listSelections();
 
 	const newSelections = selections.map((sel) => selectLine(editor, sel, avoidPrefixes));
 
 	editor.setSelections(newSelections);
+}
+
+/**
+ * A fallback selection to try and select the closest ".cm-content" element.
+ *
+ * A .cm-content is made for any live preview markdown editor, including table cells.
+ */
+function selectClosestCmContent() {
+	const selection = document.getSelection();
+	const closestContent = selection?.anchorNode?.parentElement?.closest(".cm-content");
+	if (!selection || !closestContent) {
+		return;
+	}
+	const range = document.createRange();
+	range.selectNodeContents(closestContent);
+	selection.removeAllRanges();
+	selection.addRange(range);
 }
 
 /**

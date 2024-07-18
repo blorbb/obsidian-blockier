@@ -44,7 +44,7 @@ interface BracketSuggestOptions {
  */
 abstract class BracketSuggest extends EditorSuggest<string> {
 	constructor(
-		protected readonly app: App,
+		public readonly app: App,
 		protected readonly plugin: Plugin,
 		protected readonly opts: BracketSuggestOptions
 	) {
