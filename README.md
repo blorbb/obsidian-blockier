@@ -12,7 +12,7 @@ This plugin mostly fills feature gaps that I did not find in other plugins. I hi
 
 ### Select Block
 
-Select block (overrides <kbd>ctrl</kbd>/<kbd>cmd</kbd> <kbd>A</kbd> by default) selects the block your cursor is currently in, excluding block prefixes like bullets `-`, numbers `1.`, headings `##`, quotes `>`, and checkboxes `- [ ]`.
+Select block (overrides <kbd>ctrl</kbd>/<kbd>cmd</kbd> <kbd>A</kbd> by default) selects the block your cursor is currently in, excluding block prefixes like bullets `-`, numbers `1.`, headings `##`, quotes `>`, and checkboxes `- [ ]`. It can also be configured to select an entire code block if your cursor is in one.
 
 ![select](https://github.com/blorbb/obsidian-blockier/assets/88137137/b9d3e3a0-7d76-4f78-92d8-6ae8e204daf1)
 
