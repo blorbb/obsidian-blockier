@@ -8,6 +8,7 @@ import { CalloutSuggest, CheckboxSuggest } from "suggest";
 interface PluginSettings {
 	replaceBlocks: boolean;
 	selectAllAvoidsPrefixes: boolean;
+	selectFullCodeBlock: boolean;
 	showCheckboxSuggestions: boolean;
 	checkboxVariants: string;
 	showCalloutSuggestions: boolean;
@@ -18,6 +19,7 @@ interface PluginSettings {
 const DEFAULT_SETTINGS: PluginSettings = {
 	replaceBlocks: true,
 	selectAllAvoidsPrefixes: true,
+	selectFullCodeBlock: false,
 	showCheckboxSuggestions: false,
 	checkboxVariants: ' x><!-/?*nliISpcb"0123456789',
 	showCalloutSuggestions: true,
@@ -37,7 +39,10 @@ export default class BlockierPlugin extends Plugin {
 			id: "select-block",
 			name: "Select block",
 			editorCallback: (editor: Editor) => {
-				runSelectBlock(editor, this.settings.selectAllAvoidsPrefixes);
+				runSelectBlock(editor, {
+					avoidPrefixes: this.settings.selectAllAvoidsPrefixes,
+					selectCodeBlock: this.settings.selectFullCodeBlock,
+				});
 			},
 		});
 
@@ -64,7 +69,10 @@ export default class BlockierPlugin extends Plugin {
 						mac: "m-a", // cmd a
 						run: () => {
 							const editor = this.app.workspace.activeEditor?.editor;
-							runSelectBlock(editor, this.settings.selectAllAvoidsPrefixes);
+							runSelectBlock(editor, {
+								avoidPrefixes: this.settings.selectAllAvoidsPrefixes,
+								selectCodeBlock: this.settings.selectFullCodeBlock,
+							});
 							// stop other bindings
 							// doesn't work if this returns false.
 							return true;
@@ -148,6 +156,20 @@ class SettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.selectAllAvoidsPrefixes)
 					.onChange(async (value) => {
 						this.plugin.settings.selectAllAvoidsPrefixes = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Select full code block")
+			.setDesc(
+				"Whether the Select block command will select the entire code block when the cursor is inside one."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.selectFullCodeBlock)
+					.onChange(async (value) => {
+						this.plugin.settings.selectFullCodeBlock = value;
 						await this.plugin.saveSettings();
 					})
 			);

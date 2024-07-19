@@ -7,21 +7,30 @@
 import { Editor, EditorPosition, EditorSelection } from "obsidian";
 import { LINE_START_BLOCK } from "regex";
 
-export function runSelectBlock(editor: Editor | undefined, avoidPrefixes: boolean) {
+export interface SelectOpts {
+	avoidPrefixes: boolean;
+	selectCodeBlock: boolean;
+}
+
+export function runSelectBlock(editor: Editor | undefined, opts: SelectOpts) {
 	// if the cursor is in a table, it doesn't select the table contents properly
 	// because it tries to select the entire row.
 	// fall back to just selecting the entire table cell
-	const selection = document.getSelection();
-	const closestTable = selection?.anchorNode?.parentElement?.closest("table");
+	const closestTable = closest(document.getSelection()?.anchorNode, "table");
 	if (closestTable || !editor) {
 		console.log("blockier: falling back to selecting closest live preview element");
 		selectClosestCmContent();
 		return;
 	}
 
-	const selections = editor.listSelections();
+	// select all text in a code block
+	if (opts.selectCodeBlock) {
+		const successful = trySelectCodeBlock();
+		if (successful) return;
+	}
 
-	const newSelections = selections.map((sel) => selectLine(editor, sel, avoidPrefixes));
+	const selections = editor.listSelections();
+	const newSelections = selections.map((sel) => selectLine(editor, sel, opts.avoidPrefixes));
 
 	editor.setSelections(newSelections);
 }
@@ -33,14 +42,62 @@ export function runSelectBlock(editor: Editor | undefined, avoidPrefixes: boolea
  */
 function selectClosestCmContent() {
 	const selection = document.getSelection();
-	const closestContent = selection?.anchorNode?.parentElement?.closest(".cm-content");
-	if (!selection || !closestContent) {
-		return;
-	}
+	const closestContent = closest(selection?.anchorNode, ".cm-content");
+	if (!selection || !closestContent) return;
+
 	const range = document.createRange();
 	range.selectNodeContents(closestContent);
 	selection.removeAllRanges();
 	selection.addRange(range);
+}
+
+/**
+ * Tries to select an entire code block if the cursor is in a code block.
+ *
+ * Returns whether a code block selection was successfully made.
+ */
+function trySelectCodeBlock(): boolean {
+	const WITHIN_CODE_BLOCK_SELECTOR =
+		".HyperMD-codeblock.cm-line:not(.HyperMD-codeblock-begin):not(.HyperMD-codeblock-end)";
+
+	const selection = document.getSelection();
+	const anchorLine = closest(selection?.anchorNode, WITHIN_CODE_BLOCK_SELECTOR);
+	const focusLine = closest(selection?.focusNode, WITHIN_CODE_BLOCK_SELECTOR);
+
+	if (!selection || !anchorLine || !focusLine) return false;
+
+	// check that the anchor and focus node of the selection is also within
+	// a single code block. if they aren't, don't do this code block selection.
+	let selectionIsWithinBlock = false;
+
+	// find start and end of the code block
+	let codeStart: Element | null = anchorLine;
+	while (codeStart && !codeStart.classList.contains("HyperMD-codeblock-begin")) {
+		if (codeStart === focusLine) selectionIsWithinBlock = true;
+		codeStart = codeStart.previousElementSibling;
+	}
+	if (!codeStart) return false;
+
+	let codeEnd: Element | null = anchorLine;
+	while (codeEnd && !codeEnd.classList.contains("HyperMD-codeblock-end")) {
+		if (codeEnd === focusLine) selectionIsWithinBlock = true;
+		codeEnd = codeEnd.nextElementSibling;
+	}
+	if (!codeEnd) return false;
+
+	if (!selectionIsWithinBlock) return false;
+
+	const range = document.createRange();
+	range.setStartAfter(codeStart);
+	// using setEndBefore sets the range to the start of the
+	// ending ``` line.
+	// make it set to the end of the last line of code instead.
+	// even if it's an empty line, it will have a <br> element.
+	range.setEndAfter(codeEnd.previousElementSibling!.lastChild!);
+	selection.removeAllRanges();
+	selection.addRange(range);
+
+	return true;
 }
 
 /**
@@ -111,5 +168,21 @@ function orderPositions(
 		return [anchor, head];
 	} else {
 		return [head, anchor];
+	}
+}
+
+/**
+ * Finds the closest parent element that matches the selector.
+ *
+ * If the node itself matches the selector, it will be returned.
+ */
+function closest(node: Node | null | undefined, selector: string): Element | null {
+	if (!node) return null;
+	if (node.nodeType === Node.ELEMENT_NODE) {
+		const el = node as Element;
+		return el.closest(selector);
+	} else {
+		// turn undefined into null
+		return node.parentElement?.closest(selector) ?? null;
 	}
 }
