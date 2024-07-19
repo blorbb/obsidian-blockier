@@ -23,13 +23,14 @@ export function runSelectBlock(editor: Editor | undefined, opts: SelectOpts) {
 		return;
 	}
 
+	const selections = editor.listSelections();
+
 	// select all text in a code block
-	if (opts.selectCodeBlock) {
+	if (opts.selectCodeBlock && selections.length === 1) {
 		const successful = trySelectCodeBlock();
 		if (successful) return;
 	}
 
-	const selections = editor.listSelections();
 	const newSelections = selections.map((sel) => selectLine(editor, sel, opts.avoidPrefixes));
 
 	editor.setSelections(newSelections);
