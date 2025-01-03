@@ -10,21 +10,30 @@ export const BLOCKS = {
 	NUMBER: /[0-9]+[.)]/.source,
 	HEADING: /#{1,6}/.source,
 	QUOTE: />/.source,
+	CODEBLOCK: /```/.source,
 } as const;
 
 /**
  * Matches a block prefix without any leading/trailing spaces.
+ *
+ * Excludes codeblock.
  */
 export const ANY_BLOCK = new RegExp(
-	`${BLOCKS.CHECKBOX}|${BLOCKS.BULLET}|${BLOCKS.NUMBER}|${BLOCKS.HEADING}|${BLOCKS.QUOTE}`
+	`(?:${BLOCKS.CHECKBOX}|${BLOCKS.BULLET}|${BLOCKS.NUMBER}|${BLOCKS.HEADING}|${BLOCKS.QUOTE})`
 );
 
 /**
  * Matches a block prefix at the start of a line. Can be indented.
  *
- * Includes ending space.
+ * Includes ending space except for code blocks. Code blocks are only matched
+ * if there is a language specifier.
+ *
+ * A matching group named `prefix` will be present if matched, containing
+ * the string prefix that should not be selected.
  */
-export const LINE_START_BLOCK = new RegExp(`^\\s*(?:${ANY_BLOCK.source}) `);
+export const LINE_START_BLOCK = new RegExp(
+	`(?<prefix>^\\s*${ANY_BLOCK.source} )|(?:(?<prefix>^${BLOCKS.CODEBLOCK}).+)`
+);
 
 /**
  * Matches block prefixes that can be overridden.
