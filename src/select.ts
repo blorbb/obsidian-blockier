@@ -27,7 +27,7 @@ export function runSelectBlock(editor: Editor | undefined, opts: SelectOpts) {
 
 	// select all text in a code block
 	if (opts.selectCodeBlock && selections.length === 1) {
-		const successful = trySelectCodeBlock();
+		const successful = trySelectCodeBlock(editor);
 		if (successful) return;
 	}
 
@@ -57,47 +57,51 @@ function selectClosestCmContent() {
  *
  * Returns whether a code block selection was successfully made.
  */
-function trySelectCodeBlock(): boolean {
+function trySelectCodeBlock(editor: Editor): boolean {
 	const WITHIN_CODE_BLOCK_SELECTOR =
 		".HyperMD-codeblock.cm-line:not(.HyperMD-codeblock-begin):not(.HyperMD-codeblock-end)";
 
-	const selection = document.getSelection();
-	const anchorLine = closest(selection?.anchorNode, WITHIN_CODE_BLOCK_SELECTOR);
-	const focusLine = closest(selection?.focusNode, WITHIN_CODE_BLOCK_SELECTOR);
+	const selection = editor.listSelections().first();
+	if (!selection) return false;
 
-	if (!selection || !anchorLine || !focusLine) return false;
+	// check that both endpoints of the selection are within a code block
+	{
+		const docSelection = document.getSelection();
+		const anchorNode = closest(docSelection?.anchorNode, WITHIN_CODE_BLOCK_SELECTOR);
+		const focusNode = closest(docSelection?.focusNode, WITHIN_CODE_BLOCK_SELECTOR);
+		if (!docSelection || !anchorNode || !focusNode) return false;
+	}
 
-	// check that the anchor and focus node of the selection is also within
-	// a single code block. if they aren't, don't do this code block selection.
-	let selectionIsWithinBlock = false;
+	// check that the anchor and head node of the selection is also within
+	// a *single* code block (not across multiple).
+	// if they aren't, don't do this code block selection.
+	if (editor.getSelection().contains("```")) return false;
 
 	// find start and end of the code block
-	let codeStart: Element | null = anchorLine;
-	while (codeStart && !codeStart.classList.contains("HyperMD-codeblock-begin")) {
-		if (codeStart === focusLine) selectionIsWithinBlock = true;
-		codeStart = codeStart.previousElementSibling;
+	const lastLine = editor.lastLine();
+
+	// search upwards
+	let anchorLine = selection.anchor.line;
+	let anchorLineContents = editor.getLine(anchorLine);
+	while (!anchorLineContents.startsWith("```")) {
+		if (anchorLine <= 0) return false;
+		anchorLine -= 1;
+		anchorLineContents = editor.getLine(anchorLine);
 	}
-	if (!codeStart) return false;
 
-	let codeEnd: Element | null = anchorLine;
-	while (codeEnd && !codeEnd.classList.contains("HyperMD-codeblock-end")) {
-		if (codeEnd === focusLine) selectionIsWithinBlock = true;
-		codeEnd = codeEnd.nextElementSibling;
+	// search downwards
+	let headLine = selection.head.line;
+	let headLineContents = editor.getLine(headLine);
+	while (headLineContents !== "```") {
+		if (headLine >= lastLine) return false;
+		headLine += 1;
+		headLineContents = editor.getLine(headLine);
 	}
-	if (!codeEnd) return false;
 
-	if (!selectionIsWithinBlock) return false;
-
-	const range = document.createRange();
-	range.setStartAfter(codeStart);
-	// using setEndBefore sets the range to the start of the
-	// ending ``` line.
-	// make it set to the end of the last line of code instead.
-	// even if it's an empty line, it will have a <br> element.
-	range.setEndAfter(codeEnd.previousElementSibling!.lastChild!);
-	selection.removeAllRanges();
-	selection.addRange(range);
-
+	editor.setSelection(
+		{ line: anchorLine + 1, ch: 0 },
+		{ line: headLine - 1, ch: editor.getLine(headLine - 1).length }
+	);
 	return true;
 }
 
