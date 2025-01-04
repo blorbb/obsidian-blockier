@@ -58,32 +58,51 @@ function selectClosestCmContent() {
  * Returns whether a code block selection was successfully made.
  */
 function trySelectCodeBlock(editor: Editor): boolean {
-	const WITHIN_CODE_BLOCK_SELECTOR =
-		".HyperMD-codeblock.cm-line:not(.HyperMD-codeblock-begin):not(.HyperMD-codeblock-end)";
-
 	const selection = editor.listSelections().first();
 	if (!selection) return false;
 
-	// check that both endpoints of the selection are within a code block
-	{
-		const docSelection = document.getSelection();
-		const anchorNode = closest(docSelection?.anchorNode, WITHIN_CODE_BLOCK_SELECTOR);
-		const focusNode = closest(docSelection?.focusNode, WITHIN_CODE_BLOCK_SELECTOR);
-		if (!docSelection || !anchorNode || !focusNode) return false;
-	}
-
-	// check that the anchor and head node of the selection is also within
+	// check that the anchor and head node of the selection is within
 	// a *single* code block (not across multiple).
 	// if they aren't, don't do this code block selection.
 	if (editor.getSelection().contains("```")) return false;
 
+	// if the cursor is on a code fence line, don't do the code block selection
+	if (
+		editor.getLine(selection.anchor.line).contains("```") ||
+		editor.getLine(selection.anchor.line).contains("```")
+	) {
+		return false;
+	}
+
+	// check for the number of code blocks fences above.
+	// odd = in code block, even = not in code block.
+	// except that code blocks can contain "```lang", so always count
+	// finding these as being an opening.
+	// "``` " counts as close, but "``` a" counts as open.
+	const textAbove = editor.getRange({ line: 0, ch: 0 }, selection.anchor);
+	let isInCodeBlock = false;
+	textAbove.match(/```.*/g)?.forEach((match) => {
+		if (match.trim().length > 3) {
+			// there was a language specifier (also not only trailing whitespace)
+			// always toggle as inside a code block
+			isInCodeBlock = true;
+		} else {
+			// no language specifier, toggle between in and out.
+			isInCodeBlock = !isInCodeBlock;
+		}
+	});
+
+	if (!isInCodeBlock) return false;
+
 	// find start and end of the code block
+	// not bothering with multiple opening fences within a code block
+	// because that's just not sane text to care about.
 	const lastLine = editor.lastLine();
 
 	// search upwards
 	let anchorLine = selection.anchor.line;
 	let anchorLineContents = editor.getLine(anchorLine);
-	while (!anchorLineContents.startsWith("```")) {
+	while (!anchorLineContents.contains("```")) {
 		if (anchorLine <= 0) return false;
 		anchorLine -= 1;
 		anchorLineContents = editor.getLine(anchorLine);
@@ -92,7 +111,7 @@ function trySelectCodeBlock(editor: Editor): boolean {
 	// search downwards
 	let headLine = selection.head.line;
 	let headLineContents = editor.getLine(headLine);
-	while (headLineContents !== "```") {
+	while (!headLineContents.endsWith("```")) {
 		if (headLine >= lastLine) return false;
 		headLine += 1;
 		headLineContents = editor.getLine(headLine);
