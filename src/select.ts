@@ -4,13 +4,14 @@
  * See documentation on `selectLine` for details.
  */
 
+import { PluginSettings } from "main";
 import { Editor, EditorPosition, EditorSelection } from "obsidian";
 import { LINE_START_BLOCK } from "regex";
 
-export interface SelectOpts {
-	avoidPrefixes: boolean;
-	selectCodeBlock: boolean;
-}
+type SelectOpts = Pick<
+	PluginSettings,
+	"selectBlockAvoidsPrefixes" | "selectAllIfUnchanged" | "selectFullCodeBlock"
+>;
 
 export function runSelectBlock(editor: Editor | undefined, opts: SelectOpts) {
 	// if the cursor is in a table, it doesn't select the table contents properly
@@ -25,13 +26,23 @@ export function runSelectBlock(editor: Editor | undefined, opts: SelectOpts) {
 
 	const selections = editor.listSelections();
 
+	let newSelections: EditorSelection[] | undefined;
 	// select all text in a code block
-	if (opts.selectCodeBlock && selections.length === 1) {
-		const successful = trySelectCodeBlock(editor);
-		if (successful) return;
+	if (opts.selectFullCodeBlock && selections.length === 1) {
+		const maybeSelection = trySelectCodeBlock(editor);
+		newSelections = maybeSelection !== undefined ? [maybeSelection] : undefined;
 	}
 
-	const newSelections = selections.map((sel) => selectLine(editor, sel, opts.avoidPrefixes));
+	if (newSelections === undefined) {
+		newSelections = selections.map((sel) =>
+			selectLine(editor, sel, opts.selectBlockAvoidsPrefixes)
+		);
+	}
+
+	if (opts.selectAllIfUnchanged && selectionsEqual(selections, newSelections)) {
+		selectClosestCmContent();
+		return;
+	}
 
 	editor.setSelections(newSelections);
 }
@@ -55,23 +66,23 @@ function selectClosestCmContent() {
 /**
  * Tries to select an entire code block if the cursor is in a code block.
  *
- * Returns whether a code block selection was successfully made.
+ * Returns a new selection if one was successfully made.
  */
-function trySelectCodeBlock(editor: Editor): boolean {
+function trySelectCodeBlock(editor: Editor): EditorSelection | undefined {
 	const selection = editor.listSelections().first();
-	if (!selection) return false;
+	if (!selection) return;
 
 	// check that the anchor and head node of the selection is within
 	// a *single* code block (not across multiple).
 	// if they aren't, don't do this code block selection.
-	if (editor.getSelection().contains("```")) return false;
+	if (editor.getSelection().contains("```")) return;
 
 	// if the cursor is on a code fence line, don't do the code block selection
 	if (
 		editor.getLine(selection.anchor.line).contains("```") ||
 		editor.getLine(selection.anchor.line).contains("```")
 	) {
-		return false;
+		return;
 	}
 
 	// check for the number of code blocks fences above.
@@ -92,7 +103,7 @@ function trySelectCodeBlock(editor: Editor): boolean {
 		}
 	});
 
-	if (!isInCodeBlock) return false;
+	if (!isInCodeBlock) return;
 
 	// find start and end of the code block
 	// not bothering with multiple opening fences within a code block
@@ -103,7 +114,7 @@ function trySelectCodeBlock(editor: Editor): boolean {
 	let anchorLine = selection.anchor.line;
 	let anchorLineContents = editor.getLine(anchorLine);
 	while (!anchorLineContents.contains("```")) {
-		if (anchorLine <= 0) return false;
+		if (anchorLine <= 0) return;
 		anchorLine -= 1;
 		anchorLineContents = editor.getLine(anchorLine);
 	}
@@ -112,16 +123,15 @@ function trySelectCodeBlock(editor: Editor): boolean {
 	let headLine = selection.head.line;
 	let headLineContents = editor.getLine(headLine);
 	while (!headLineContents.endsWith("```")) {
-		if (headLine >= lastLine) return false;
+		if (headLine >= lastLine) return;
 		headLine += 1;
 		headLineContents = editor.getLine(headLine);
 	}
 
-	editor.setSelection(
-		{ line: anchorLine + 1, ch: 0 },
-		{ line: headLine - 1, ch: editor.getLine(headLine - 1).length }
-	);
-	return true;
+	return {
+		anchor: { line: anchorLine + 1, ch: 0 },
+		head: { line: headLine - 1, ch: editor.getLine(headLine - 1).length },
+	};
 }
 
 /**
@@ -209,4 +219,29 @@ function closest(node: Node | null | undefined, selector: string): Element | nul
 		// turn undefined into null
 		return node.parentElement?.closest(selector) ?? null;
 	}
+}
+
+// A bunch of equality functions to check equality of selections
+
+/**
+ * Checks if two lists of editor selections (must be same length) are equal.
+ *
+ * They are equal if all selections have the same corresponding anchor and head.
+ * If the anchor and head are equal if swapped, it is still not counted.
+ */
+function selectionsEqual(a: EditorSelection[], b: EditorSelection[]): boolean {
+	for (let i = 0; i < a.length; i++) {
+		if (!selectionEqual(a[i], b[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function selectionEqual(a: EditorSelection, b: EditorSelection): boolean {
+	return positionEqual(a.anchor, b.anchor) && positionEqual(a.head, b.head);
+}
+
+function positionEqual(a: EditorPosition, b: EditorPosition): boolean {
+	return a.ch === b.ch && a.line == b.line;
 }

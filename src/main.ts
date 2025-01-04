@@ -1,24 +1,25 @@
 import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
-// @ts-expect-error
 import { keymap } from "@codemirror/view";
 import { tryReplace as tryReplaceBlock } from "replace";
 import { runSelectBlock } from "select";
 import { CalloutSuggest, CheckboxSuggest } from "suggest";
 
-interface PluginSettings {
+export type PluginSettings = {
 	replaceBlocks: boolean;
-	selectAllAvoidsPrefixes: boolean;
+	selectBlockAvoidsPrefixes: boolean;
+	selectAllIfUnchanged: boolean;
 	selectFullCodeBlock: boolean;
 	showCheckboxSuggestions: boolean;
 	checkboxVariants: string;
 	showCalloutSuggestions: boolean;
 	calloutSuggestions: string;
 	enableSelectBlockEE: boolean;
-}
+};
 
 const DEFAULT_SETTINGS: PluginSettings = {
 	replaceBlocks: true,
-	selectAllAvoidsPrefixes: true,
+	selectBlockAvoidsPrefixes: true,
+	selectAllIfUnchanged: false,
 	selectFullCodeBlock: false,
 	showCheckboxSuggestions: false,
 	checkboxVariants: ' x><!-/?*nliISpcb"0123456789',
@@ -39,10 +40,7 @@ export default class BlockierPlugin extends Plugin {
 			id: "select-block",
 			name: "Select block",
 			editorCallback: (editor: Editor) => {
-				runSelectBlock(editor, {
-					avoidPrefixes: this.settings.selectAllAvoidsPrefixes,
-					selectCodeBlock: this.settings.selectFullCodeBlock,
-				});
+				runSelectBlock(editor, this.settings);
 			},
 		});
 
@@ -69,10 +67,7 @@ export default class BlockierPlugin extends Plugin {
 						mac: "m-a", // cmd a
 						run: () => {
 							const editor = this.app.workspace.activeEditor?.editor;
-							runSelectBlock(editor, {
-								avoidPrefixes: this.settings.selectAllAvoidsPrefixes,
-								selectCodeBlock: this.settings.selectFullCodeBlock,
-							});
+							runSelectBlock(editor, this.settings);
 							// stop other bindings
 							// doesn't work if this returns false.
 							return true;
@@ -119,24 +114,14 @@ class SettingsTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName("Replace blocks")
-			.setDesc(
-				"Replaces the block type if you enter the prefix at the start of the paragraph."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.replaceBlocks).onChange(async (value) => {
-					this.plugin.settings.replaceBlocks = value;
-					await this.plugin.saveSettings();
-				})
-			);
+		containerEl.createEl("h2", { text: "Select block" });
 
 		// need to use an editor extension so that ctrl-a works in other contexts
 		// (e.g. select all in settings / properties)
 		new Setting(containerEl)
-			.setName("Use ctrl/cmd-A for select block")
+			.setName("Use ctrl/cmd-A for Select block")
 			.setDesc(
-				"Whether to override ctrl/cmd-A for the select block command. Disable this and set a hotkey in hotkey settings if you prefer a different hotkey."
+				"Whether to override ctrl/cmd-A for the Select block command. Disable this and set a hotkey in hotkey settings if you prefer a different hotkey. Reload required."
 			)
 			.addToggle((toggle) =>
 				toggle
@@ -153,9 +138,23 @@ class SettingsTab extends PluginSettingTab {
 			.setDesc("Whether the Select block command will avoid selecting block prefixes.")
 			.addToggle((toggle) =>
 				toggle
-					.setValue(this.plugin.settings.selectAllAvoidsPrefixes)
+					.setValue(this.plugin.settings.selectBlockAvoidsPrefixes)
 					.onChange(async (value) => {
-						this.plugin.settings.selectAllAvoidsPrefixes = value;
+						this.plugin.settings.selectBlockAvoidsPrefixes = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Select all on double activation")
+			.setDesc(
+				"Whether the Select block command will select everything if the new selection would be unchanged."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.selectAllIfUnchanged)
+					.onChange(async (value) => {
+						this.plugin.settings.selectAllIfUnchanged = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -173,6 +172,22 @@ class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		containerEl.createEl("h2", { text: "Block edit" });
+
+		new Setting(containerEl)
+			.setName("Replace blocks")
+			.setDesc(
+				"Replaces the block type if you enter the prefix at the start of the paragraph."
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.replaceBlocks).onChange(async (value) => {
+					this.plugin.settings.replaceBlocks = value;
+					await this.plugin.saveSettings();
+				})
+			);
+
+		containerEl.createEl("h2", { text: "Suggestions" });
 
 		new Setting(containerEl)
 			.setName("Show checkbox suggestions")
