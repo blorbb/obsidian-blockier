@@ -172,7 +172,8 @@ function selectLine(
 
 		const lineNum = start.line;
 		const line = editor.getLine(lineNum);
-		const paragraphStart = line.match(LINE_START_BLOCK)?.groups?.["prefix"].length ?? 0;
+		const groups = line.match(LINE_START_BLOCK)?.groups;
+		const paragraphStart = groups?.["prefix0"]?.length ?? groups?.["prefix1"]?.length ?? 0;
 		return {
 			anchor: {
 				ch: paragraphStart,

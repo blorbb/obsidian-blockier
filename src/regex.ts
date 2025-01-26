@@ -28,11 +28,12 @@ export const ANY_BLOCK = new RegExp(
  * Includes ending space except for code blocks. Code blocks are only matched
  * if there is a language specifier.
  *
- * A matching group named `prefix` will be present if matched, containing
- * the string prefix that should not be selected.
+ * A matching group named `prefix0` or `prefix1` will be present if matched,
+ * containing the string prefix that should not be selected (can't have the
+ * same name as it is a syntax error - only one will be present).
  */
 export const LINE_START_BLOCK = new RegExp(
-	`(?<prefix>^\\s*${ANY_BLOCK.source} )|(?:(?<prefix>^${BLOCKS.CODEBLOCK}).+)`
+	`(?<prefix0>^\\s*${ANY_BLOCK.source} )|(?:(?<prefix1>^${BLOCKS.CODEBLOCK}).+)`
 );
 
 /**
