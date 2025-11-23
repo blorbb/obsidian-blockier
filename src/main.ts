@@ -1,8 +1,18 @@
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
-import { keymap } from "@codemirror/view";
+import {
+	App,
+	Editor,
+	EditorSelection,
+	MarkdownView,
+	Notice,
+	Plugin,
+	PluginSettingTab,
+	Setting,
+} from "obsidian";
+import { EditorView, keymap } from "@codemirror/view";
 import { tryReplace as tryReplaceBlock } from "replace";
 import { runSelectBlock } from "select";
 import { CalloutSuggest, CheckboxSuggest } from "suggest";
+import { expandSelections } from "expand";
 
 export type PluginSettings = {
 	replaceBlocks: boolean;
@@ -90,6 +100,25 @@ export default class BlockierPlugin extends Plugin {
 				new CalloutSuggest(this.app, this, this.settings.calloutSuggestions)
 			);
 		}
+
+		this.addCommand({
+			id: "expand-selection",
+			name: "Expand selection",
+			editorCallback: (editor: Editor, view) => {
+				// @ts-expect-error https://docs.obsidian.md/Plugins/Editor/Communicating+with+editor+extensions
+				const editorView = editor.cm as EditorView;
+				const newSelections = expandSelections(editorView, editor);
+
+				const mappedSelections = newSelections.map(
+					(sel) =>
+						({
+							anchor: editor.offsetToPos(sel.anchor),
+							head: editor.offsetToPos(sel.head),
+						} satisfies EditorSelection)
+				);
+				editor.setSelections(mappedSelections);
+			},
+		});
 	}
 
 	async loadSettings() {
